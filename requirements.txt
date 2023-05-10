@@ -1,0 +1,16 @@
+openai
+transformers==4.24.0
+beir==1.0.1
+datasets
+tqdm
+scipy
+sacrebleu
+evaluate==0.2.2
+rouge_score==0.1.2
+chardet==5.1.0
+cchardet==2.1.7
+BeautifulSoup4==4.11.2
+sentencepiece==0.1.83
+filelock
+tenacity
+spacy==3.5.0
