@@ -8,7 +8,7 @@ This repository contains the code and data for the paper
 FLARE is a generic retrieval-augmented generation method that actively decides when and what to retrieve using a prediction of the upcoming sentence to anticipate future content and utilize it as the query to retrieve relevant documents if it contains low-confidence tokens.
 
 <p align="center">
-  <img align="middle" src="res/flare.pdf" height="350" alt="FLARE"/>
+  <img align="middle" src="res/flare.png" height="350" alt="FLARE"/>
 </p>
 
 ## Install environment with Conda
