@@ -1,7 +1,7 @@
-# <ins>F</ins>orward-<ins>L</ins>ooking <ins>A</ins>ctive <ins>RE</ins>trieval-augmented generation (FLARE)
+# <ins>F</ins>orward-<ins>L</ins>ooking <ins>A</ins>ctive <ins>RE</ins>trieval augmented generation (FLARE)
 
 This repository contains the code and data for the paper
-[Generalized Active Retrieval-augmented Generation](http://jzb.vanpersie.cc/).
+[Active Retrieval Augmented Generation](http://jzb.vanpersie.cc/).
 
 ## Overview
 
