@@ -1,7 +1,7 @@
 # <ins>F</ins>orward-<ins>L</ins>ooking <ins>A</ins>ctive <ins>RE</ins>trieval augmented generation (FLARE)
 
 This repository contains the code and data for the paper
-[Active Retrieval Augmented Generation](http://jzb.vanpersie.cc/).
+[Active Retrieval Augmented Generation](https://arxiv.org/abs/2305.06983).
 
 ## Overview
 
@@ -41,4 +41,16 @@ Please avoid uploading your keys to Github by accident!
 Use the following command to run FLARE on the 2WikiMultihopQA dataset (500 examples) with `text-davinci-003`. Be careful, the experiment is relatively expensive because FLARE iteratively calls OpenAI APIs. To save credits, you can set `debug=true` to active the debugging mode which walks you through the process one example at a time, or you can decrease `max_num_examples` to run small-scale experiments.
 ```shell
 ./openai.sh 2wikihop configs/2wikihop_flare_config.json
+```
+
+## Citation
+```
+@article{jiang2023flare,
+      title={Active Retrieval Augmented Generation}, 
+      author={Zhengbao Jiang and Frank F. Xu and Luyu Gao and Zhiqing Sun and Qian Liu and Jane Dwivedi-Yu and Yiming Yang and Jamie Callan and Graham Neubig},
+      year={2023},
+      eprint={2305.06983},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
 ```
