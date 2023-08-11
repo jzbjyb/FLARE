@@ -36,16 +36,23 @@ popd
 python prep.py --task build_elasticsearch --inp data/dpr/psgs_w100.tsv wikipedia_dpr  # build index
 ```
 
+### Setup Bing search (only required for experiments on WikiASP dataset)
+1. Create a bing search API key following instructions on [https://www.microsoft.com/en-us/bing/apis/bing-web-search-api](https://www.microsoft.com/en-us/bing/apis/bing-web-search-api).
+2. Run a local bing search server with caching functionality to save credits: `export BING_SEARCH_KEY=$YOUR_KEY; python bing_search_cache_server.py &> bing_log.out &`.
+
 ### Setup OpenAI keys
 Put OpenAI keys in the `keys.sh` file.
 Multiple keys can be used to accelerate experiments.
 Please avoid uploading your keys to Github by accident!
 
 ### Run FLARE
-Use the following command to run FLARE on the 2WikiMultihopQA dataset (500 examples) with `text-davinci-003`. Be careful, the experiment is relatively expensive because FLARE iteratively calls OpenAI APIs. To save credits, you can set `debug=true` to active the debugging mode which walks you through the process one example at a time, or you can decrease `max_num_examples` to run small-scale experiments.
+Use the following command to run FLARE with `text-davinci-003`. 
 ```shell
-./openai.sh 2wikihop configs/2wikihop_flare_config.json
+./openai.sh 2wikihop configs/2wikihop_flare_config.json  # 2WikiMultihopQA dataset
+./openai.sh wikiasp configs/wikiasp_flare_config.json  # WikiAsp dataset
 ```
+Be careful, experiments are relatively expensive because FLARE calls OpenAI API multiple times for a single example. You can decrease `max_num_examples` to run small-scale experiments to save credits.
+Set `debug=true` to active the debugging mode which walks you through the iterative retrieval and generation process one example at a time.
 
 ## Citation
 ```
