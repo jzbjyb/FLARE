@@ -174,3 +174,4 @@ cython_debug/
 
 ## Custom
 .vscode
+cache-*.arrow

@@ -53,7 +53,7 @@ elif [[ ${dataset} == 'asqa_hint' ]]; then
     max_num_examples=500
     max_generation_len=256
 elif [[ ${dataset} == 'wikiasp' ]]; then
-    input="--input \"data/wikiasp/matched_with_bing_test.500.annotated\""
+    input="--input data/wikiasp"
     engine=bing
     index_name=wikiasp
     fewshot=4

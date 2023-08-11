@@ -68,7 +68,7 @@ def eval(
         return answers if len(answers) > 1 else answers[0]
 
     def choose_full_prediction(example):
-        if Utils.no_stop(model=model, dataset=dataset):
+        if Utils.no_stop(model=model):
             pred = example['output'].strip()
         else:
             pred = example['output'].split('\n\n', 1)[0].strip()

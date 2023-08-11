@@ -22,8 +22,8 @@ class Utils:
         return 'code' in model
 
     @classmethod
-    def no_stop(cls, model: str, dataset: str):
-        return 'turbo' in model or dataset in {'lmdata', 'mmlu'}
+    def no_stop(cls, model: str):
+        return 'turbo' in model
 
 
 class NoKeyAvailable(Exception):

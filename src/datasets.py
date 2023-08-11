@@ -596,14 +596,14 @@ class WikiAsp(BaseDataset):
         if os.path.exists(cls.title_annotation_file):
             cls.id2title = dict([tuple(l.strip().split('\t')) for l in open(cls.title_annotation_file)])
 
-    def load_data(self, hf_dataset_dir_pattern: str):
+    def load_data(self, hf_data_dir: str):
         self.load_id2title()
 
         def map_fn(example):
             qid = example['exid']
             title = example['clean_title'] if 'clean_title' in example else example['title']
             if qid in self.id2title:
-                logging.info(f'modify title based on annotation for {qid}')
+                logging.info(f'modify title based on annotation for {qid} from {title} to {self.id2title[qid]}')
                 title = self.id2title[qid]
             references = ' '.join(example['inputs'])
             targets = example['clean_targets'] if 'clean_targets' in example else example['targets']
@@ -627,9 +627,7 @@ class WikiAsp(BaseDataset):
             }
             return new_example
 
-        all_hf_dirs = glob.glob(hf_dataset_dir_pattern.strip('"'))  # TODO: fix this bug
-        logging.info(f'loading from {all_hf_dirs}')
-        data = concatenate_datasets([load_from_disk(hf_dir) for hf_dir in all_hf_dirs])
+        data = load_from_disk(hf_data_dir)
         return data.map(map_fn)
 
 

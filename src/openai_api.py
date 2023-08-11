@@ -1,4 +1,4 @@
-from typing import List, Dict, Any, Tuple, Union
+from typing import List, Dict, Any, Tuple, Union, Set
 import argparse
 import random
 import numpy as np
@@ -6,23 +6,17 @@ import logging
 from tqdm import tqdm
 import os
 import re
-import time
 import json
 from operator import itemgetter
 from collections import defaultdict, Counter
-from filelock import FileLock
 from multiprocessing import Process, Queue, Lock
 from multiprocessing.managers import BaseManager
-from transformers import AutoTokenizer, GPT2TokenizerFast
-from beir.datasets.data_loader import GenericDataLoader
-from beir.retrieval.search.lexical import BM25Search
+from transformers import GPT2TokenizerFast
 from tenacity import retry, stop_after_attempt, wait_fixed
 from .retriever import BM25
 from .templates import CtxPrompt, ApiReturn, RetrievalInstruction
 from .datasets import StrategyQA, WikiMultiHopQA, WikiAsp, ASQA
 from .utils import Utils, NoKeyAvailable, openai_api_call
-
-
 logging.basicConfig(level=logging.INFO)
 
 
@@ -88,11 +82,11 @@ class KeyManager:
 class QueryAgent:
     def __init__(
         self,
-        model: str = 'code-davinci-002',
+        model: str = 'text-davinci-003',
         max_generation_len: int = 128,
-        retrieval_kwargs: Dict[str, Any] = {},
-        tokenizer: AutoTokenizer = None,
         temperature: float = 0,
+        retrieval_kwargs: Dict[str, Any] = {},
+        tokenizer: GPT2TokenizerFast = None,
     ):
         self.model = model
         self.tokenizer = tokenizer
@@ -172,18 +166,18 @@ class QueryAgent:
         self,
         queries: List[Union[str, List[str]]],
         is_question: bool = False,
-        debug: bool = False
     ):
         mql = None if (self.use_full_input_as_query and is_question) else self.max_query_length
         if len(queries) and type(queries[0]) is list:  # nested queries
             flatten = sum(queries, [])
-            _ctx_ids, _ctx_texts = self.retriever.retrieve_and_prepare(
-                decoder_texts=flatten,
+            _ctx_ids, _ctx_texts = self.retriever.retrieve(
+                queries=flatten,
                 topk=self.ret_topk,
                 max_query_length=mql)
-            ctx_ids, ctx_texts = [], []
+
             # merge results
             prev_ind = 0
+            ctx_ids, ctx_texts = [], []
             for i in range(len(queries)):
                 ctx_ids.append([])
                 ctx_texts.append([])
@@ -192,25 +186,20 @@ class QueryAgent:
                 cids, ctxts = _ctx_ids[prev_ind:prev_ind + nqi], _ctx_texts[prev_ind:prev_ind + nqi]
                 assert cids.shape[-1] == ctxts.shape[-1] == self.ret_topk
                 for j in range(self.ret_topk):
-                    for k in range(nqi):  # TODO: sort by score?
+                    for k in range(nqi):
                         if cids[k, j] not in ctx_ids[-1]:
                             ctx_ids[-1].append(cids[k, j])
                             ctx_texts[-1].append(ctxts[k, j])
                 ctx_ids[-1] = ctx_ids[-1][:self.ret_topk]
                 ctx_texts[-1] = ctx_texts[-1][:self.ret_topk]
                 prev_ind = prev_ind + nqi
-                if debug:
-                    print('-------------- ret -------------')
-                    print(queries[i])
-                    print(ctx_ids[-1])
-                    print(ctx_texts[-1])
-                    print('-------------- ret -------------')
+
             ctx_ids = np.array(ctx_ids)
             ctx_texts = np.array(ctx_texts)
-            assert ctx_ids.shape == ctx_texts.shape == (len(queries), self.ret_topk), f'{ctx_ids.shape}, {ctx_texts.shape}, {queries}'
+            assert ctx_ids.shape == ctx_texts.shape == (len(queries), self.ret_topk), f'inconsistent shapes: {ctx_ids.shape}, {ctx_texts.shape}, {queries}'
         else:
-            ctx_ids, ctx_texts = self.retriever.retrieve_and_prepare(
-                decoder_texts=queries,
+            ctx_ids, ctx_texts = self.retriever.retrieve(
+                queries=queries,
                 topk=self.ret_topk,
                 max_query_length=mql)
         return ctx_ids, ctx_texts
@@ -635,7 +624,6 @@ if __name__ == '__main__':
     parser.add_argument('--index_name', type=str, default='test')
     parser.add_argument('--shard_id', type=int, default=0)
     parser.add_argument('--num_shards', type=int, default=1)
-    parser.add_argument('--file_lock', type=str, default=None)
     parser.add_argument('--openai_keys', type=str, default=[], help='openai keys', nargs='+')
     parser.add_argument('--config_file', type=str, default=None, help='config file')
     parser.add_argument('--config_kvs', type=str, default=None, help='extra config json, used to override config_file')
@@ -649,7 +637,6 @@ if __name__ == '__main__':
     parser.add_argument('--temperature', type=float, default=0.0)
     parser.add_argument('--final_stop_sym', type=str, default=None, help='stop symbol')
 
-    parser.add_argument('--build_index', action='store_true')
     parser.add_argument('--seed', type=int, default=2022)
     parser.add_argument('--debug', action='store_true')
     args = parser.parse_args()
@@ -657,21 +644,11 @@ if __name__ == '__main__':
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    # load retrieval corpus and index
-    corpus, queries, qrels = None, None, None
-    if args.build_index:
-        if args.input:
-            corpus, queries, qrels = GenericDataLoader(data_folder=args.input).load(split='dev')
-            BM25Search(index_name=args.index_name, hostname='localhost', initialize=True, number_of_shards=1).index(corpus)
-            time.sleep(5)
-        exit()
-
-    # init agent
-    ret_tokenizer = AutoTokenizer.from_pretrained('google/flan-t5-xl')
+    # init tokenizer for truncation
     prompt_tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
     prompt_tokenizer.pad_token = prompt_tokenizer.eos_token
 
-    # default
+    # default args
     retrieval_kwargs = {
         'topk': 1,
         'use_ctx': False,
@@ -719,28 +696,23 @@ if __name__ == '__main__':
 
     retriever = BM25(
         tokenizer=prompt_tokenizer,
-        dataset=(corpus, queries, qrels),
         index_name=args.index_name,
-        use_decoder_input_ids=True,
         engine=args.search_engine,
-        exclude_domains=['wikipedia.org', 'wikiwand.com', 'wiki2.org', 'wikimedia.org'],
-        file_lock=FileLock(args.file_lock) if args.file_lock else None)
+        exclude_domains=['wikipedia.org', 'wikiwand.com', 'wiki2.org', 'wikimedia.org'])
     retrieval_kwargs['retriever'] = retriever
     retrieval_kwargs['debug'] = args.debug
+    retrieval_kwargs['final_stop_sym'] = args.final_stop_sym or ('!@#$%^&*()\n\n)(*&^%$#@!' if Utils.no_stop(model=args.model) else '\n\n')
 
     logging.info('=== retrieval kwargs ===')
     logging.info(retrieval_kwargs)
 
-    if args.final_stop_sym:
-        retrieval_kwargs['final_stop_sym'] = args.final_stop_sym
-    else:
-        retrieval_kwargs['final_stop_sym'] = '!@#$%^&*()\n\n)(*&^%$#@!' if Utils.no_stop(model=args.model, dataset=args.dataset) else '\n\n'
+    # init agent
     qagent = QueryAgent(
         model=args.model,
-        tokenizer=prompt_tokenizer,
         max_generation_len=args.max_generation_len,
+        temperature=args.temperature,
         retrieval_kwargs=retrieval_kwargs,
-        temperature=args.temperature)
+        tokenizer=prompt_tokenizer)
 
     # load data
     if args.dataset == 'strategyqa':
@@ -748,7 +720,7 @@ if __name__ == '__main__':
     elif args.dataset == '2wikihop':
         data = WikiMultiHopQA(args.input, prompt_type=retrieval_kwargs['prompt_type'])
     elif args.dataset == 'asqa':
-        data = ASQA(json_file=args.input, prompt_type=retrieval_kwargs['prompt_type'])
+        data = ASQA(args.input, prompt_type=retrieval_kwargs['prompt_type'])
     elif args.dataset == 'wikiasp':
         data = WikiAsp(args.input, prompt_type=retrieval_kwargs['prompt_type'])
     else:
@@ -756,10 +728,6 @@ if __name__ == '__main__':
     if qagent.use_ctx_for_examplars == 'ret':
         logging.info('retrieve ctx for examplars')
         data.retrieval_augment_examplars(qagent)
-    elif qagent.use_ctx_for_examplars == False:
-        pass
-    else:
-        raise NotImplementedError
     data.format(fewshot=args.fewshot)
 
     # modify prompt properities

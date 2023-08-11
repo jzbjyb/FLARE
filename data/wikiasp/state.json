@@ -1,0 +1,23 @@
+{
+  "_data_files": [
+    {
+      "filename": "data-00000-of-00001.arrow"
+    }
+  ],
+  "_fingerprint": "db97fae21591f21c",
+  "_format_columns": [
+    "clean_targets",
+    "clean_title",
+    "domain",
+    "exid",
+    "inputs",
+    "query",
+    "targets",
+    "title",
+    "url"
+  ],
+  "_format_kwargs": {},
+  "_format_type": null,
+  "_output_all_columns": false,
+  "_split": null
+}
