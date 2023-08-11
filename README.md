@@ -26,7 +26,8 @@ gzip -d psgs_w100.tsv.gz
 popd
 ```
 
-### Build index over the Wikipedia dump using Elasticsearch
+### Build Wikipedia index
+We use Elasticsearch to index the Wikipedia dump.
 ```shell
 wget -O elasticsearch-7.17.9.tar.gz https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.17.9-linux-x86_64.tar.gz  # download Elasticsearch
 tar zxvf elasticsearch-7.17.9.tar.gz
@@ -36,7 +37,8 @@ popd
 python prep.py --task build_elasticsearch --inp data/dpr/psgs_w100.tsv wikipedia_dpr  # build index
 ```
 
-### Setup Bing search (only required for experiments on WikiASP dataset)
+### Setup Bing search
+This is only required for experiments on the WikiASP dataset.
 1. Create a bing search API key following instructions on [https://www.microsoft.com/en-us/bing/apis/bing-web-search-api](https://www.microsoft.com/en-us/bing/apis/bing-web-search-api).
 2. Run a local bing search server with caching functionality to save credits: `export BING_SEARCH_KEY=$YOUR_KEY; python bing_search_cache_server.py &> bing_log.out &`.
 
