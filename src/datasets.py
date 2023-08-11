@@ -279,7 +279,7 @@ class StrategyQA(BaseDataset):
 
 
 class WikiMultiHopQA(BaseDataset):
-    wid2alias_file: str = 'data/2wikimultihopqa/dev_beir/id_aliases.json'
+    wid2alias_file: str = 'data/2wikimultihopqa/id_aliases.json'
 
     cot_examplars: List[Dict] = [
         {

@@ -22,7 +22,7 @@ echo 'output to:' $output
 
 prompt_type=""
 if [[ ${dataset} == '2wikihop' ]]; then
-    input="--input data/2wikimultihopqa/dev_beir"
+    input="--input data/2wikimultihopqa"
     engine=elasticsearch
     index_name=wikipedia_dpr
     fewshot=8
