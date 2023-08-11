@@ -1,28 +1,19 @@
-from typing import List, Tuple, Any, Union, Dict, Set, Callable
+from typing import List, Tuple, Union, Dict
 import argparse
 import random
-import os
-import functools
 import json
 import time
 import glob
-from collections import defaultdict
 import csv
-import copy
 import evaluate
 import re
 import logging
 from tqdm import tqdm
 import numpy as np
 import torch
-from transformers import AutoTokenizer
-from datasets import load_dataset, concatenate_datasets, load_from_disk, Dataset
 from beir.datasets.data_loader import GenericDataLoader
-from beir.retrieval.evaluation import EvaluateRetrieval
-from beir.retrieval.search.lexical import BM25Search
-from models.datasets import WikiMultiHopQA, WikiAsp, ASQA
-from models.templates import CtxPrompt
-from models.utils import Utils
+from src.datasets import WikiMultiHopQA, WikiAsp, ASQA
+from src.utils import Utils
 
 
 def eval(
@@ -284,20 +275,19 @@ def eval(
 def build_elasticsearch(
     beir_corpus_file_pattern: str,
     index_name: str,
-    get_id: Callable = None,
 ):
     beir_corpus_files = glob.glob(beir_corpus_file_pattern)
     print(f'#files {len(beir_corpus_files)}')
     from beir.retrieval.search.lexical.elastic_search import ElasticSearch
     config = {
-        "hostname": 'localhost',
-        "index_name": index_name,
-        "keys": {"title": "title", "body": "txt"},
-        "timeout": 100,
-        "retry_on_timeout": True,
-        "maxsize": 24,
-        "number_of_shards": 'default',
-        "language": 'english',
+        'hostname': 'localhost',
+        'index_name': index_name,
+        'keys': {'title': 'title', 'body': 'txt'},
+        'timeout': 100,
+        'retry_on_timeout': True,
+        'maxsize': 24,
+        'number_of_shards': 'default',
+        'language': 'english',
     }
     es = ElasticSearch(config)
 
@@ -307,19 +297,20 @@ def build_elasticsearch(
     time.sleep(5)
     es.create_index()
 
-    get_id = get_id or (lambda x: str(x['_id']))
     # generator
     def generate_actions():
         for beir_corpus_file in beir_corpus_files:
             with open(beir_corpus_file, 'r') as fin:
-                for l in fin:
-                    doc = json.loads(l)
+                reader = csv.reader(fin, delimiter='\t')
+                header = next(reader)  # skip header
+                for row in reader:
+                    _id, text, title = row[0], row[1], row[2]
                     es_doc = {
-                        "_id": get_id(doc),
-                        "_op_type": "index",
-                        "refresh": "wait_for",
-                        config['keys']['body']: doc['text'],
-                        config['keys']['title']: doc['title'],
+                        '_id': _id,
+                        '_op_type': 'index',
+                        'refresh': 'wait_for',
+                        config['keys']['title']: title,
+                        config['keys']['body']: text,
                     }
                     yield es_doc
 
@@ -401,9 +392,7 @@ if __name__ == '__main__':
 
     elif args.task == 'build_elasticsearch':
         beir_corpus_file_pattern, index_name = args.inp  # 'wikipedia_dpr'
-        get_id_default = lambda doc: str(doc['_id'])
-        get_id_lm = lambda doc: doc['metadata']['line'] + '.' + str(doc['_id'])
-        build_elasticsearch(beir_corpus_file_pattern, index_name, get_id=get_id_default)
+        build_elasticsearch(beir_corpus_file_pattern, index_name=index_name)
 
     elif args.task == 'jsonl_to_keyvalue':
         jsonl_file = args.inp[0]
