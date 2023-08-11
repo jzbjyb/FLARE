@@ -19,7 +19,11 @@ Create a conda env and follow `setup.sh` to install dependencies.
 ### Download Wikipedia dump
 Download the Wikipedia dump from [the DPR repository](https://github.com/facebookresearch/DPR/blob/main/dpr/data/download_data.py#L32) using the following command:
 ```shell
-wget -O data/dpr/psgs_w100.tsv https://dl.fbaipublicfiles.com/dpr/wikipedia_split/psgs_w100.tsv.gz
+mkdir data/dpr
+wget -O data/dpr/psgs_w100.tsv.gz https://dl.fbaipublicfiles.com/dpr/wikipedia_split/psgs_w100.tsv.gz
+pushd data/dpr
+gzip -d psgs_w100.tsv.gz
+popd
 ```
 
 ### Build index over the Wikipedia dump using Elasticsearch
