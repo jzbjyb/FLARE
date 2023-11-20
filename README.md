@@ -45,7 +45,7 @@ This is only required for experiments on the WikiASP dataset.
 ### Setup OpenAI keys
 Put OpenAI keys in the `keys.sh` file.
 Multiple keys can be used to accelerate experiments.
-Please avoid uploading your keys to Github by accident!
+Please avoid uploading your keys to GitHub by accident!
 
 ### Run FLARE
 Use the following command to run FLARE with `text-davinci-003`. 
